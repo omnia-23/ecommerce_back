@@ -19,6 +19,33 @@ const bootstrap = (app, express) => {
   const baseUrl = "/api/v1";
   dbConnection();
 
+  const endpointSecret = "whsec_cJFZc0YWh1VfRQ3jDdQYM3Iqlc1wD3PZ";
+
+  app.post(
+    "/webhook",
+    express.raw({ type: "application/json" }),
+    (req, res) => {
+      const sig = req.headers["stripe-signature"].toString();
+
+      let event;
+
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      } catch (err) {
+        response.status(400).send(`Webhook Error: ${err.message}`);
+        return;
+      }
+
+      // Handle the event
+      let checkoutSessionCompleted;
+      if (event.type === "checkout.session.completed") {
+        checkoutSessionCompleted = event.data.object;
+      } else console.log(`Unhandled event type ${event.type}`);
+
+      res.json({ checkoutSessionCompleted });
+    }
+  );
+
   app.use(express.json());
 
   app.use("/uploads", express.static("uploads"));
