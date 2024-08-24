@@ -13,11 +13,40 @@ import addressRouter from "./modules/address/address.routes.js";
 import couponRouter from "./modules/coupon/coupon.routes.js";
 import cartRouter from "./modules/cart/cart.routes.js";
 import orderRouter from "./modules/order/order.routes.js";
+import Stripe from "stripe";
+import asyncHandler from "./middleware/asyncHandler.js";
 
+const stripe = new Stripe(
+  "sk_test_51PokU9AXaj6VSZsVYsubHy4RarfN6W5azi0mSSOgPXK1B2qPDE2Itx3ho7FtrVs3z60kyKqf0BQ9EjQcb2Nzw7MW00Z3btADVB"
+);
 dotenv.config();
 const bootstrap = (app, express) => {
   const baseUrl = "/api/v1";
   dbConnection();
+
+  // This is your Stripe CLI webhook secret for testing your endpoint locally.
+  const endpointSecret = "whsec_9LqTpG2I5KpatvmxxMdVMWOWRIGHSmkr";
+
+  app.post(
+    "/webhook",
+    express.raw({ type: "application/json" }),
+    asyncHandler((request, response) => {
+      const sig = request.headers["stripe-signature"].toString();
+
+      let event;
+
+      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+      let checkoutSessionCompleted;
+      // Handle the event
+      if (event.type == "checkout.session.completed")
+        checkoutSessionCompleted = event.data.object;
+      else console.log(`Unhandled event type ${event.type}`);
+
+      res.status(200).json({ checkoutSessionCompleted });
+    })
+  );
+
+  app.listen(4242, () => console.log("Running on port 4242"));
 
   app.use(express.json());
 
