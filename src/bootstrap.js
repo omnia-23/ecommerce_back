@@ -30,12 +30,12 @@ const bootstrap = (app, express) => {
   app.post(
     "/webhook",
     express.raw({ type: "application/json" }),
-    asyncHandler((request, response) => {
-      const sig = request.headers["stripe-signature"].toString();
+    asyncHandler((req, res) => {
+      const sig = req.headers["stripe-signature"].toString();
 
       let event;
 
-      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
       let checkoutSessionCompleted;
       // Handle the event
       if (event.type == "checkout.session.completed")
@@ -45,8 +45,6 @@ const bootstrap = (app, express) => {
       res.status(200).json({ checkoutSessionCompleted });
     })
   );
-
-  app.listen(4242, () => console.log("Running on port 4242"));
 
   app.use(express.json());
 
